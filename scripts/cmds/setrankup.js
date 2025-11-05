@@ -1,89 +1,90 @@
-const { drive, getStreamFromURL, getExtFromUrl, getTime } = global.utils;
-const checkUrlRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/;
+module.exports.config = {
+    name: "setrankup",
+    version: "1.0.5",
+    hasPermssion: 1,
+    credits: "Mirai Team",
+    description: "Edit text/animation when new members level up",
+    commandCategory: "System",
+    usages: "[gif/text] [Text or URL Download GIF image]",
+    cooldowns: 10,
+    dependencies: {
+        "fs-extra": "",
+        "path": ""
+    }
+}
 
-module.exports = {
-	config: {
-		name: "setrankup",
-		version: "1.1",
-		author: "NTKhang",
-		countDown: 0,
-		role: 0,
-		shortDescription: {
-			vi: "Cấu hình rankup",
-			en: "Configure rankup"
-		},
-		longDescription: {
-			vi: "Cấu hình rankup",
-			en: "Configure rankup"
-		},
-		category: "owner",
-		guide: {
-			vi: "   {pn} text <message>: Cấu hình tin nhắn khi thành viên thăng hạng trong box chat của bạn"
-				+ "\n   Với các tham số sau:"
-				+ "\n    + {userName}: Tên thành viên"
-				+ "\n    + {userNameTag}: Tag tên thành viên"
-				+ "\n    + {oldRank}: Rank cũ của thành viên"
-				+ "\n    + {currentRank}: Rank hiện tại của thành viên"
-				+ "\n   {pn} file <link>: Cấu hình file đính kèm khi thành viên thăng hạng trong box chat của bạn"
-				+ "\n   {pn} reset: Đặt lại cấu hình mặc định",
-			en: "   {pn} text <message>: Configure the message when a member rankup in your chatbox"
-				+ "\n   With the following parameters:"
-				+ "\n    + {userName}: Member's name"
-				+ "\n    + {userNameTag}: Tag member's name"
-				+ "\n    + {oldRank}: Member's old rank"
-				+ "\n    + {currentRank}: Member's current rank"
-				+ "\n   {pn} file <link>: Configure the attachment file when a member rankup in your chatbox"
-				+ "\n   {pn} reset: Reset to default configuration"
-		}
-	},
+module.exports.onLoad = function () {
+    const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
+    const { join } = global.nodemodule["path"];
 
-	langs: {
-		vi: {
-			changedMessage: "Đã thay đổi tin nhắn rankup thành: %1",
-			missingAttachment: "Bạn phải đính kèm ảnh để cấu hình ảnh rankup",
-			changedAttachment: "Đã thêm %1 tệp đính kèm vào rankup thành công"
-		},
-		en: {
-			changedMessage: "Changed rankup message to: %1",
-			missingAttachment: "You must attach an image to configure the rankup image",
-			changedAttachment: "Successfully added %1 attachment to rankup"
-		}
-	},
+    const path = join(__dirname, "cache", "rankup");
+    if (!existsSync(path)) mkdirSync(path, { recursive: true });
 
-	onStart: async function ({ args, message, event, threadsData, getLang }) {
-		const { body, threadID, senderID } = event;
-		switch (args[0]) {
-			case "text": {
-				const newContent = body.slice(body.indexOf("text") + 5);
-				await threadsData.set(threadID, newContent, "data.rankup.message");
-				return message.reply(getLang("changedMessage", newContent));
-			}
-			case "file":
-			case "image":
-			case "mp3":
-			case "video": {
-				const attachments = [...event.attachments, ...(event.messageReply?.attachments || [])].filter(item => ["photo", 'png', "animated_image", "video", "audio"].includes(item.type));
-				if (!attachments.length && !(args[1] || '').match(checkUrlRegex))
-					return message.reply(getLang("missingAttachment", attachments.length));
-				const { data } = await threadsData.get(threadID);
-				if (!data.rankup)
-					data.rankup = {};
-				if (!data.rankup.attachments)
-					data.rankup.attachments = [];
+    return;
+}
 
-				for (const attachment of attachments) {
-					const { url } = attachment;
-					const ext = getExtFromUrl(url);
-					const fileName = `${getTime()}.${ext}`;
-					const infoFile = await drive.uploadFile(`setrankup_${threadID}_${senderID}_${fileName}`, await getStreamFromURL(url));
-					data.rankup.attachments.push(infoFile.id);
-				}
-				await threadsData.set(threadID, {
-					data
-				});
-				return message.reply(getLang("changedAttachment"));
-			}
-		}
-	}
-};
+module.exports.languages = {
+    "vi": {
+        "savedConfig": "Đã lưu tùy chỉnh của bạn thành công! dưới đây sẽ là phần preview:",
+        "tagMember": "[Tên thành viên]",
+        "tagLevel": "[Level của thành viên]",
+        "gifPathNotExist": "Nhóm của bạn chưa từng cài đặt gif rankup",
+        "removeGifSuccess": "Đã gỡ bỏ thành công file gif của nhóm bạn!",
+        "invaildURL": "Url bạn nhập không phù hợp!",
+        "internetError": "Không thể tải file vì url không tồn tại hoặc bot đã xảy ra vấn đề về mạng!",
+        "saveGifSuccess": "Đã lưu file gif của nhóm bạn thành công, bên dưới đây là preview:"
+    },
+    "en": {
+        "savedConfig": "Saved your config, here is preview:",
+        "tagMember": "[Member's name]",
+        "tagLevel": "[Member level]",
+        "gifPathNotExist":"Your thread didn't set gif join",
+        "removeGifSuccess": "Removed thread's gif!",
+        "invaildURL": "Invalid url!",
+        "internetError": "Can't load file because url doesn't exist or internet have some problem!",
+        "saveGifSuccess": "Saved file gif, here is preview:"
+    }
+}
 
+module.exports.run = async function ({ args, event, api, Threads, getText }) {
+    try {
+        const { existsSync, createReadStream } = global.nodemodule["fs-extra"];
+        const { join } = global.nodemodule["path"];
+        const { threadID, messageID } = event;
+        const msg = args.slice(1, args.length).join(" ");
+        var data = (await Threads.getData(threadID)).data;
+
+        switch (args[0]) {
+            case "text": {
+                data["customRankup"] = msg;
+                global.data.threadData.set(parseInt(threadID), data);
+                await Threads.setData(threadID, { data });
+                return api.sendMessage(getText("savedConfig"), threadID, function () {
+                    const body = msg
+                    .replace(/\{name}/g, getText("tagMember"))
+                    .replace(/\{level}/g, getText("tagLevel"));
+                    return api.sendMessage(body, threadID);
+                });
+            }
+            case "gif": {
+                const path = join(__dirname, "cache", "rankup");
+                const pathGif = join(path, `${threadID}.gif`);
+                if (msg == "remove") {
+                    if (!existsSync(pathGif)) return api.sendMessage(getText("gifPathNotExist"), threadID, messageID);
+                    unlinkSync(pathGif);
+                    return api.sendMessage(getText("removeGifSuccess"), threadID, messageID);
+                }
+                else {
+                    if (!msg.match(/(http(s?):)([/|.|\w|\s|-])*\.(?:gif|GIF)/g)) return api.sendMessage(getText("invaildURL"), threadID, messageID);
+                    try {
+                        await global.utils.downloadFile(msg, pathGif);
+                    } catch (e) { return api.sendMessage(getText("internetError"), threadID, messageID) }
+                    return api.sendMessage({ body: getText("saveGifSuccess"), attachment: createReadStream(pathGif) }, threadID, messageID);
+                }
+            }
+            default: {
+                return global.utils.throwError(this.config.name, threadID, messageID);
+            }
+        }
+    } catch (e) { return console.log(e) };
+}

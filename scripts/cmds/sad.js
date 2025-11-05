@@ -1,31 +1,25 @@
-const axios = require("axios");
-
-module.exports = {
-  config: {
-    name: "sad",
-    aliases: ["sad quote"],
-    version: "1.0",
-    author: "RICKCIEL X KSHITIZ",
-    countDown: 5,
-    role: 0,
-    shortDescription: "GENERAL QUOTES",
-    longDescription: {
-      en: "Get random sad quotes.",
-    },
-    category: "fun",
-    guide: {
-      en: "{prefix}sad",
-    },
-  },
-
-  onStart: async function ({ api, event }) {
-    try {
-      const response = await axios.get("https://api-1.chatbotmesss.repl.co/api/sadquotes1");
-      const { quote, author } = response.data;
-      const message = ` ${quote}`;
-      return api.sendMessage(message, event.threadID);
-    } catch (error) {
-      console.error(error);
-    }
-  },
+const fs = require("fs");
+module.exports.config = {
+	name: "sad",
+    version: "1.1.1",
+	hasPermssion: 0,
+	credits: "John Lester", 
+	description: "Just Respond",
+	commandCategory: "no prefix",
+    cooldowns: 5, 
 };
+
+module.exports.handleEvent = function({ api, event, client, __GLOBAL }) {
+	var { threadID, messageID } = event;
+	let react = event.body.toLowerCase();
+	if(react.includes("Sad") || react.includes("relationship") || react.includes("rls") || react.includes("Rls") || react.includes("💔") || react.includes("🙂") || react.includes("Pain") || react.includes("pera") || react.includes("Pera") || react.includes("Picchi Rifat") || react.includes("picchi rifat") || react.includes("kosto") || react.includes("Kosto") || react.includes("😿") || react.includes("🙂") || react.includes("sad") || react.includes("Sad") || react.includes("Picchi") || react.includes("Rifat") || react.includes("😥") || react.includes("😰") || react.includes("😨") || react.includes("😢") || react.includes("😊") || react.includes("😔") || react.includes("😞") || react.includes("depression") || react.includes("stress") || react.includes("Stress") || react.includes("Depress") || react.includes("depression") || react.includes("Depression") || react.includes("Relationship") || react.includes("Single") || react.includes("😭")) {
+		var msg = {
+				body: ""
+			}
+			api.sendMessage(msg, threadID, messageID);
+    api.setMessageReaction("🙅", event.messageID, (err) => {}, true)
+		}
+	}
+	module.exports.run = function({ api, event, client, __GLOBAL }) {
+
+  }

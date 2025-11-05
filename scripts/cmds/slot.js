@@ -1,79 +1,61 @@
-module.exports = {
-  config: {
+module.exports.config = {
     name: "slot",
-    version: "1.0",
-    author: "OtinXSandip",
-    shortDescription: {
-      en: "Slot game",
-    },
-    longDescription: {
-      en: "Slot game.",
-    },
-    category: "Game",
-  },
-  langs: {
-    en: {
-      invalid_amount: "Enter a valid and positive amount to have a chance to win double",
-      not_enough_money: "Check your balance if you have that amount",
-      spin_message: "Spinning...",
-      win_message: "You won $%1, buddy!",
-      lose_message: "You lost $%1, buddy.",
-      jackpot_message: "Jackpot! You won $%1 with three %2 symbols, buddy!",
-    },
-  },
-  onStart: async function ({ args, message, event, envCommands, usersData, commandName, getLang }) {
-    const { senderID } = event;
-    const userData = await usersData.get(senderID);
-    const amount = parseInt(args[0]);
-
-    if (isNaN(amount) || amount <= 0) {
-      return message.reply(getLang("invalid_amount"));
-    }
-
-    if (amount > userData.money) {
-      return message.reply(getLang("not_enough_money"));
-    }
-
-    const slots = ["💚", "💛", "💙", "💛", "💚", "💙", "💙", "💛", "💚"];
-    const slot1 = slots[Math.floor(Math.random() * slots.length)];
-    const slot2 = slots[Math.floor(Math.random() * slots.length)];
-    const slot3 = slots[Math.floor(Math.random() * slots.length)];
-
-    const winnings = calculateWinnings(slot1, slot2, slot3, amount);
-
-    await usersData.set(senderID, {
-      money: userData.money + winnings,
-      data: userData.data,
-    });
-
-    const messageText = getSpinResultMessage(slot1, slot2, slot3, winnings, getLang);
-
-    return message.reply(messageText);
-  },
+    version: "1.0.1",
+    hasPermssion: 0,
+    credits: "Mirai Team",
+    description: "Đánh bạc bằng hình thức hoa quả",
+    commandCategory: "game-sp",
+    usages: "[số coin cần đặt]",
+    cooldowns: 5,
 };
 
-function calculateWinnings(slot1, slot2, slot3, betAmount) {
-  if (slot1 === "💚" && slot2 === "💚" && slot3 === "💚") {
-    return betAmount * 10;
-  } else if (slot1 === "💛" && slot2 === "💛" && slot3 === "💛") {
-    return betAmount * 5;
-  } else if (slot1 === slot2 && slot2 === slot3) {
-    return betAmount * 3;
-  } else if (slot1 === slot2 || slot1 === slot3 || slot2 === slot3) {
-    return betAmount * 2;
-  } else {
-    return -betAmount;
-  }
+module.exports.languages = {
+    "vi": {
+        "missingInput": "[ SLOT ] Số tiền đặt cược không được để trống hoặc là số âm",
+        "moneyBetNotEnough": "[ SLOT ] Số tiền bạn đặt lớn hơn hoặc bằng số dư của bạn!",
+        "limitBet": "[ SLOT ] Số coin đặt không được dưới 50$!",
+        "returnWin": "🎰 %1 | %2 | %3 🎰\nBạn đã thắng với %4$",
+        "returnLose": "🎰 %1 | %2 | %3 🎰\nBạn đã thua và mất %4$"
+    },
+    "en": {
+        "missingInput": "[ SLOT ] The bet money must not be blank or a negative number",
+        "moneyBetNotEnough": "[ SLOT ] The money you betted is bigger than your balance!",
+        "limitBet": "[ SLOT ] Your bet is too low, the minimum is 50$",
+        "returnWin": "🎰 %1 | %2 | %3 🎰\nYou won with %4$",
+        "returnLose": "🎰 %1 | %2 | %3 🎰\nYou lost and loss %4$"
+    }
 }
 
-function getSpinResultMessage(slot1, slot2, slot3, winnings, getLang) {
-  if (winnings > 0) {
-    if (slot1 === "💙" && slot2 === "💙" && slot3 === "💙") {
-      return getLang("jackpot_message", winnings, "💙");
-    } else {
-      return getLang("win_message", winnings) + `\[ ${slot1} | ${slot2} | ${slot3} ]`;
+module.exports.run = async function({ api, event, args, Currencies, getText }) {
+    const { threadID, messageID, senderID } = event;
+    const { getData, increaseMoney, decreaseMoney } = Currencies;
+    const slotItems = ["🍇", "🍉", "🍊", "🍏", "7⃣", "🍓", "🍒", "🍌", "🥝", "🥑", "🌽"];
+    const moneyUser = (await getData(senderID)).money;
+
+    var moneyBet = parseInt(args[0]);
+    if (isNaN(moneyBet) || moneyBet <= 0) return api.sendMessage(getText("missingInput"), threadID, messageID);
+	if (moneyBet > moneyUser) return api.sendMessage(getText("moneyBetNotEnough"), threadID, messageID);
+	if (moneyBet < 50) return api.sendMessage(getText("limitBet"), threadID, messageID);
+    var number = [], win = false;
+    for (i = 0; i < 3; i++) number[i] = Math.floor(Math.random() * slotItems.length);
+    if (number[0] == number[1] && number[1] == number[2]) {
+        moneyBet *= 9;
+        win = true;
     }
-  } else {
-    return getLang("lose_message", -winnings) + `\[ ${slot1} | ${slot2} | ${slot3} ]`;
-  }
+    else if (number[0] == number[1] || number[0] == number[2] || number[1] == number[2]) {
+        moneyBet *= 2;
+        win = true;
+    }
+    switch (win) {
+        case true: {
+            api.sendMessage(getText("returnWin", slotItems[number[0]], slotItems[number[1]], slotItems[number[2]], moneyBet), threadID, messageID);
+            await increaseMoney(senderID, moneyBet);
+            break;
         }
+        case false: {
+            api.sendMessage(getText("returnLose", slotItems[number[0]], slotItems[number[1]], slotItems[number[2]], moneyBet), threadID, messageID);
+            await decreaseMoney(senderID, moneyBet);
+            break;
+        }
+    }
+}

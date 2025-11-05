@@ -1,41 +1,31 @@
-const { exec } = require('child_process');
-
-module.exports = {
-  config: {
-    name: "shell",
-    version: "1.0",
-    author: "Samir",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Execute shell commands",
-    longDescription: "",
-    category: "shell",
-    guide: {
-      vi: "{p}{n} <command>",
-      en: "{p}{n} <command>"
-    }
-  },
-
-  onStart: async function ({ args, message }) {
-    const command = args.join(" ");
-
-    if (!command) {
-      return message.reply("Please provide a command to execute.");
-    }
-
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command: ${error}`);
-        return message.reply(`An error occurred while executing the command: ${error.message}`);
-      }
-
-      if (stderr) {
-        console.error(`Command execution resulted in an error: ${stderr}`);
-        return message.reply(`Command execution resulted in an error: ${stderr}`);
-      }
-
-      console.log(`Command executed successfully:\n${stdout}`);
-      message.reply(`Command executed successfully:\n${stdout}`);
-    });
-  }
+module.exports.config = {
+	name: "shell",
+	version: "7.3.1",
+	hasPermssion: 2,
+	credits: "John Lester",
+	description: "running shell",
+	commandCategory: "System",
+	usages: "[shell]",
+	cooldowns: 0,
+	dependencies: {
+		"child_process": ""
+	}
 };
+module.exports.run = async function({ api, event, args, Threads, Users, Currencies, models }) {    
+const { exec } = require("child_process");
+const god = ["100052086120278"];
+  if (!god.includes(event.senderID)) 
+return api.sendMessage("LOL", event.threadID, event.messageID);
+let text = args.join(" ")
+exec(`${text}`, (error, stdout, stderr) => {
+    if (error) {
+        api.sendMessage(`error: \n${error.message}`, event.threadID, event.messageID);
+        return;
+    }
+    if (stderr) {
+        api.sendMessage(`stderr:\n ${stderr}`, event.threadID, event.messageID);
+        return;
+    }
+    api.sendMessage(`stdout:\n ${stdout}`, event.threadID, event.messageID);
+});
+}
