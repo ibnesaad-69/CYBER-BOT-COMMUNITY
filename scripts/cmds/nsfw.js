@@ -1,38 +1,43 @@
-const axios = require('axios');
-const fs = require("fs-extra");
-
-module.exports = {
-	config: {
-		name: "nsfw",
-		aliases: ["nsfw"],
-		version: "1.0",
-		author: "MILAN",
-		countDown: 5,
-		role: 0,
-		shortDescription: "get nsfw images",
-		longDescription: "",
-		category: "funny ",
-		guide: {
-			vi: "{pn}",
-			en: "{pn}"
-		}
-	},
-
-	onStart: async function ({ message, args, event, api }) {
-	try {
- const { data } = await axios.get("https://milanbhandari.imageapi.repl.co/nsfw?apikey=xyzmilan");
- const url = await axios.get(data.url, { responseType: "arraybuffer" });
- fs.writeFileSync(__dirname + "/tmp/nsfw.png", Buffer.from(url.data, "utf-8"));
- const msg = "";
- const Img = [
- fs.createReadStream(__dirname + "/tmp/nsfw.png")
- ];
- return api.sendMessage({
- body: msg,
- attachment: Img
- }, event.threadID, event.messageID);
- } catch (error) {
- console.error(error);
- }
- }
+module.exports.config = {
+	name: "nsfw",
+	version: "1.0.0",
+	hasPermssion: 0,
+	credits: "Mirai Team",
+	description: "Enable and disable the permission to use NSFW commands",
+	commandCategory: "Hệ Thống",
+	cooldowns: 5,
 };
+
+module.exports.languages = {
+    "vi": {
+        "returnSuccessEnable": "Đã cho phép thành viên sử dụng lệnh NSFW",
+        "returnSuccessDisable": "Đã cấm thành viên sử dụng lệnh NSFW",
+        "error": "Đã có lỗi xảy ra, vui lòng thử lại sau"
+    },
+    "en": {
+        "returnSuccessEnable": "Success enable NSFW command for this group",
+        "returnSuccessDisable": "Success disable NSFW command for this group",
+        "error": "Error! An error occurred. Please try again later!"
+    }
+}
+
+module.exports.run = async function ({ event, api, Threads, getText }) {
+    const { threadID, messageID } = event;
+    const { getData, setData } = Threads;
+    var type;
+
+    try {
+        let data = (await getData(threadID)).data || {};
+        if (typeof data == "undefined" || data.NSFW == false) {
+            data.NSFW = true;
+            global.data.threadAllowNSFW.push(threadID);
+            type = "on"
+        }
+        else {
+            data.NSFW = false;
+            global.data.threadAllowNSFW = global.data.threadAllowNSFW.filter(item => item != threadID);
+        }
+        await setData(threadID, { data });
+        return api.sendMessage((type == "on") ? getText("returnSuccessEnable") : getText("returnSuccessDisable"), threadID, messageID);
+    } catch (e) { console.log(e); return api.sendMessage(getText("error"), threadID, messageID) }
+}
