@@ -1,46 +1,49 @@
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-
+const axios = require('axios');
+const fs = require('fs');
 module.exports = {
-  config: {
-    name: "pet",
-    version: "1.0",
-    author: "nexo",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Pet a user",
-    longDescription: "Generates a pet image/video for a tagged user",
-    category: "fun",
-    guide: "{p}pet @user"
+ config: {
+  name: "pet",
+  version: "1.1",
+  author: "MILAN",
+  countDown: 10,
+  role: 0,
+  shortDescription: {
+    vi: "Làm thú cưng cho ai đó.",
+    en: "Pet someone."
   },
+  longDescription: {
+    vi: "Làm thú cưng cho ai đó.",
+    en: "Mak pet to someone."
+  },
+  category: "fun",
+  guide: {
+    vi: "{pn} [ chỗ trống | trả lời | đề cập | uid ]",
+    en: "{pn} [ blank | reply | mention | uid ]"
+  }
+ },
 
-  onStart: async function ({ message, event, usersData }) {
-    const mentions = Object.keys(event.mentions);
-    if (mentions.length === 0) return message.reply("❌ Please tag a user.");
-
-    const userid = mentions[0];
-    const apiUrl = `https://betadash-api-swordslush-production.up.railway.app/pet?userid=${userid}`;
-
-    try {
-      const res = await axios.get(apiUrl, { responseType: "arraybuffer" });
-      const contentType = res.headers["content-type"];
-      const ext = contentType.includes("gif") ? "gif" : contentType.includes("mp4") ? "mp4" : "jpg";
-      const filePath = path.join(__dirname, "cache", `pet_${userid}.${ext}`);
-
-      fs.writeFileSync(filePath, res.data);
-
-      const name = await usersData.getName(userid);
-
-      await message.reply({
-        body: `🐾 You petted ${name}!`,
-        attachment: fs.createReadStream(filePath)
-      });
-
-      fs.unlinkSync(filePath);
-    } catch (err) {
-      console.error("❌ Pet command error:", err);
-      message.reply("⚠️ Failed to generate pet image/video.");
+ onStart: async function({ event, api, args , message }) {
+    const { threadID, messageID, senderID, body } = event;
+    let id;
+    if (args.join().indexOf('@') !== -1) {
+      id = Object.keys(event.mentions);
+    } else {
+      id = args[0] || senderID;
     }
+    if (event.type == "message_reply") {
+      id = event.messageReply.senderID;
+    }
+
+    const response = await axios.get(`https://milanbhandari.imageapi.repl.co/pet?uid=${id}`, { responseType: 'stream' });
+    const tempFilePath = './temp.png';
+    const writer = fs.createWriteStream(tempFilePath);
+    response.data.pipe(writer);
+
+    writer.on('finish', async () => {
+      const attachment = fs.createReadStream(tempFilePath);
+      await api.sendMessage({ body: "My Pet", attachment: attachment }, threadID, messageID);
+
+      fs.unlinkSync(tempFilePath);
+    });
   }
 };
