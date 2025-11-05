@@ -1,55 +1,28 @@
-const DIG = require('discord-image-generation');
-const https = require('https');
-const fs = require('fs');
-
-module.exports = {
-  config: {
-    name: 'hitler',
-    version: '1.0',
-    author: 'AceGun',
-    description: 'Generates an image with Hitler effect applied to the user\'s avatar.',
-    category: 'media',
-    usage: '{prefix}hitler',
-  },
-
-  onStart: async function ({ event, api }) {
-    const avatarUrl = `https://graph.facebook.com/${event.senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
-    const avatar = await fetchImage(avatarUrl);
-    const hitlerImage = await new DIG.Hitler().getImage(avatar);
-    const pathHitler = __dirname + '/cache/hitler.png';
-    fs.writeFileSync(pathHitler, hitlerImage);
-    api.sendMessage({
-      attachment: fs.createReadStream(pathHitler),
-      body: 'This guy is worse than Hitler!'
-    }, event.threadID, (err, messageInfo) => {
-      if (err) {
-        console.error(err);
-      }
-      fs.unlinkSync(pathHitler); // Remove the generated image file after sending
-    });
-  }
+module.exports.config = {
+	name: "hitler",
+	version: "7.3.1",
+	hasPermssion: 0,
+	credits: "John Lester",
+	description: "meme",
+	commandCategory: "edit-img",
+	usages: "[blank or tag]",
+	cooldowns: 5,
+	dependencies: {"fs-extra": "","discord.js": "","discord-image-generation" :"","node-superfetch": ""}
 };
 
-function fetchImage(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      if (res.statusCode === 302 && res.headers.location) {
-        fetchImage(res.headers.location)
-          .then(resolve)
-          .catch(reject);
-        return;
-      }
-      if (res.statusCode !== 200) {
-        reject(new Error(`Failed to fetch image. Status code: ${res.statusCode}`));
-        return;
-      }
-      let data = Buffer.from([]);
-      res.on('data', (chunk) => {
-        data = Buffer.concat([data, chunk]);
-      });
-      res.on('end', () => {
-        resolve(data);
-      });
-    }).on('error', reject);
-  });
+module.exports.run = async ({ event, api, args, Users }) => {
+  const DIG = global.nodemodule["discord-image-generation"];
+  const Discord = global.nodemodule['discord.js'];
+  const request = global.nodemodule["node-superfetch"];
+  const fs = global.nodemodule["fs-extra"];
+   let { senderID, threadID, messageID } = event;
+  var id = Object.keys(event.mentions)[0] || event.senderID;
+  
+  var avatar = (await request.get(`https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)).body;
+  
+  let img = await new DIG.Hitler().getImage(avatar);
+  let attach = new Discord.MessageAttachment(img);
+  var path_hitler = __dirname + "/cache/hitler.png";
+  fs.writeFileSync(path_hitler, attach.attachment);
+  api.sendMessage({attachment: fs.createReadStream(path_hitler)}, event.threadID, () => fs.unlinkSync(path_hitler), event.messageID);
 }

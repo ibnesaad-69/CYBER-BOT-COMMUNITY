@@ -1,59 +1,57 @@
-const chalk = require('chalk');
+module.exports.config = {
+ name: "join",
+ version: "1.0.0", 
+ hasPermssion: 2,
+ credits: "cherry",//ntkhang fix :( 
+ description: "...",
+ commandCategory: "Lệnh admin/qtv", 
+ usages: "bủh", 
+ cooldowns: 0,
+ dependencies: {
+   "request": "",
+   "fs-extra":"",
+   "axios":""
+}};
+module.exports.handleReply = async ({ event, api, handleReply, Threads }) => {
+    var { threadID, messageID, body, senderID } = event;
+    var { threadList, author } = handleReply;
+    if (senderID != author) return;
+    api.unsendMessage(handleReply.messageID);
+    if (!body || !parseInt(body)) return api.sendMessage('Your selection must be a number.', threadID, messageID);
+    if (!threadList[parseInt(body) - 1]) return api.sendMessage("Your choice is not on the list", threadID, messageID);
+    else {
+        try {
+            var threadInfo = threadList[parseInt(body) - 1];
+            var { participantIDs } = threadInfo;
+            if (participantIDs.includes(senderID)) return api.sendMessage('You are already in this group.', threadID, messageID);
+            api.addUserToGroup(senderID, threadInfo.threadID, (e) => {
+              if (e) api.sendMessage(`Error! An error occurred. Please try again later: ${e.errorDescription}`, threadID, messageID);
+              else api.sendMessage(`The bot added you to the group ${threadInfo.name}. Check in spam or message request if you don't see the group chat.`, threadID, messageID);
+            });
+        }
+        catch (error) {
+            return api.sendMessage(`Sorry: ${error}`, threadID, messageID);
+        }
+    }
+};
 
-module.exports = {
-	config: {
-		name: "join",
-		aliases: [],
-		version: "1.0",
-		author: "",
-		countDown: 5,
-		role: 2,
-		shortDescription: "Join bot gc",
-		longDescription: "",
-		category: "",
-		guide: "{pn}"
-	},
-
-	onStart: async function () {
-		console.log(chalk.bold.hex("#00c300").bold("============ SUCCESSFULLY LOADED THE JOIN COMMAND ============"));
-	},
-
-	onReply: async function({ api, event, handleReply, threadsData }) {
-		var { threadID, messageID, senderID, body } = event;
-		var { ID } = handleReply;
-		console.log(ID);
-		if (!body || !parseInt(body)) return api.sendMessage('Your selection must be a number.', threadID, messageID);
-		if ((parseInt(body) - 1) >= ID.length) return api.sendMessage("Your pick is not on the list", threadID, messageID);
-		try {
-			var threadInfo = await threadsData.getInfo(ID[body - 1]);
-			var { participantIDs, approvalMode, adminIDs } = threadInfo;
-			if (participantIDs.includes(senderID)) return api.sendMessage(`You are already in this group.`, threadID, messageID);
-			api.addUserToGroup(senderID, ID[body - 1]);
-			if (approvalMode == true && !adminIDs.some(item => item.id == api.getCurrentUserID())) return api.sendMessage("Added you to the group's approval list...custom yourself", threadID, messageID);
-			else return api.sendMessage(`Have just added you to the group ${threadInfo.name} already.\n Check in the waiting or spam message section\n if you don't see the box a lot`, threadID, messageID);
-		} catch (error) {
-			return api.sendMessage(`I got an error so I can't add you to that group,\n I think it's having admin approval on \n and looks like am not admin of that group chat\nmy apologizes (눈‸눈) .\n\n${error}`, threadID, messageID);
-		}
-	},
-
-	onStart: async function({ api, event, threadsData }) {
-		var { threadID, messageID, senderID } = event;
-		var msg = `==Available groups ==\n`;
-		var allThread = await threadsData.get(0, 50);
-		var number = 0;
-		var ID = [];
-		for (var i of allThread) {
-			number++;
-			msg += `${number}. ${i.name}\n`;
-			ID.push(i.threadID);
-		}
-		msg += `\nReply to this message with the number corresponding to the group you want to enter.`;
-		return api.sendMessage(msg, threadID, (error, info) => {
-			global.GoatBot.onReply.push({
-				author: senderID,
-				messageID: info.messageID,
-				ID: ID
-			});
-		}, messageID);
-	}
-																												 }
+module.exports. run = async function({ api, event, Threads }) {
+    var { threadID, messageID, senderID } = event;
+    var allThreads = (await api.getThreadList(500, null, ["INBOX"])).filter(i => i.isGroup),
+    msg = `List of all the boxes you can join:\n\n`,
+    number = 5;
+    for (var thread of allThreads) {
+        number++;
+        msg += `${number}. ${thread.name}\n`;
+    }
+    msg += `\nReply to this message with the number corresponding to the box you want to enter.`;
+    return api.sendMessage(msg, threadID, (error, info) => {
+        global.client.handleReply.push({
+            name: this.config. name,
+            messageID: info.messageID,
+            author: senderID,
+            threadList: allThreads
+       
+        });
+    }, messageID);
+};

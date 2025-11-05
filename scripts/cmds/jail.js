@@ -1,44 +1,28 @@
-const DIG = require("discord-image-generation");
-const fs = require("fs-extra");
-
-module.exports = {
-	config: {
-		name: "jail",
-		version: "1.1",
-		author: "your love",
-		countDown: 5,
-		role: 0,
-		shortDescription: "Jail image",
-		longDescription: "Jail image",
-		category: "fun",
-		guide: {
-			en: "{pn} @tag"
-		}
-	},
-
-	langs: {
-		vi: {
-			noTag: "Bạn phải tag người bạn muốn tù"
-		},
-		en: {
-			noTag: "tag the rapist"
-		}
-	},
-
-	onStart: async function ({ event, message, usersData, args, getLang }) {
-		const uid1 = event.senderID;
-		const uid2 = Object.keys(event.mentions)[0];
-		if (!uid2)
-			return message.reply(getLang("noTag"));
-		const avatarURL1 = await usersData.getAvatarUrl(uid1);
-		const avatarURL2 = await usersData.getAvatarUrl(uid2);
-		const img = await new DIG.Jail().getImage(avatarURL2);
-		const pathSave = `${__dirname}/tmp/${uid2}_Jail.png`;
-		fs.writeFileSync(pathSave, Buffer.from(img));
-		const content = args.join(' ').replace(Object.keys(event.mentions)[0], "");
-		message.reply({
-			body: `${(content || "welcome rapist to jail😈")} 🚔`,
-			attachment: fs.createReadStream(pathSave)
-		}, () => fs.unlinkSync(pathSave));
-	}
+module.exports.config = {
+	name: "jail",
+	version: "7.3.1",
+	hasPermssion: 0,
+	credits: "John Lester",
+	description: "jail",
+	commandCategory: "edit-img",
+	usages: "[blank or tag]",
+	cooldowns: 5,
+	dependencies: {"fs-extra": "","discord.js": "","discord-image-generation" :"","node-superfetch": ""}
 };
+
+module.exports.run = async ({ event, api, args, Users }) => {
+  const DIG = global.nodemodule["discord-image-generation"];
+  const Discord = global.nodemodule['discord.js'];
+  const request = global.nodemodule["node-superfetch"];
+  const fs = global.nodemodule["fs-extra"];
+   let { senderID, threadID, messageID } = event;
+  var id = Object.keys(event.mentions)[0] || event.senderID;
+  
+  var avatar = (await request.get(`https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)).body;
+  
+  let img = await new DIG.Jail().getImage(avatar);
+  let attach = new Discord.MessageAttachment(img);
+  var path_trash = __dirname + "/cache/jail.png";
+  fs.writeFileSync(path_trash, attach.attachment);
+  api.sendMessage({attachment: fs.createReadStream(path_trash)}, event.threadID, () => fs.unlinkSync(path_trash), event.messageID);
+}

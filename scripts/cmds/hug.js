@@ -1,103 +1,74 @@
-const axios = require("axios");
-const fs = require("fs-extra");
-
-module.exports = {
-		config: {
-				name: "hug",
-				version: "1.0",
-				author: "SiAM",
-				countDown: 5,
-				role: 0,
-				shortDescription: {
-						en: "Send a hug gif to one or two mentioned users.",
-				},
-				longDescription: {
-						en: "This command sends a hug gif to one or two mentioned users.",
-				},
-				category: "Fun",
-				guide: {
-						en: "To use this command, type /hug followed by one or two user mentions.",
-				},
-		},
-
-		onStart: async function ({
-				api,
-				args,
-				message,
-				event,
-				threadsData,
-				usersData,
-				dashBoardData,
-				globalData,
-				threadModel,
-				userModel,
-				dashBoardModel,
-				globalModel,
-				role,
-				commandName,
-				getLang,
-		}) {
-
-
-			const { getPrefix } = global.utils;
-			 const p = getPrefix(event.threadID);
-		const approvedmain = JSON.parse(fs.readFileSync(`${__dirname}/assist_json/approved_main.json`));
-		const bypassmain = JSON.parse(fs.readFileSync(`${__dirname}/assist_json/bypass_id.json`));
-		const bypassmUid = event.senderID;
-		if (bypassmain.includes(bypassmUid)) {
-			console.log(`User ${bypassmUid} is in bypass list. Skipping the main approval check.`);
-		} else {
-			const threadmID = event.threadID;
-			if (!approvedmain.includes(threadmID)) {
-				const msgSend = message.reply(`cmd 'hug' is locked 🔒...\n Reason : Bot's main cmd \nyou need permission to use all main cmds.\n\nType ${p}requestMain to send a request to admin`);
-				setTimeout(async () => {
-					message.unsend((await msgSend).messageID);
-				}, 40000);
-				return;
-			}
-		}  
-
-				let uid1 = null,
-						uid2 = null;
-				const input = args.join(" ");
-				if (event.mentions && Object.keys(event.mentions).length === 2) {
-						uid1 = Object.keys(event.mentions)[0];
-						uid2 = Object.keys(event.mentions)[1];
-				} else if (event.mentions && Object.keys(event.mentions).length === 1) {
-						uid1 = event.senderID;
-						uid2 = Object.keys(event.mentions)[0];
-				} else {
-						return message.reply("Please mention one or two users to send a hug gif.");
-				}
-
-			if ((uid1 === '100081658294585' || uid2 === '100081658294585') && (uid1 !== '100010335499038' && uid2 !== '100010335499038')) {
-	uid1 = '100010335499038';
-	uid2 = '100081658294585';
-	message.reply("sorry🥱💁\n\nI only hug SiAM 😌💗");
-							}
-
-				const userInfo1 = await api.getUserInfo(uid1);
-				const userInfo2 = await api.getUserInfo(uid2);
-				const userName1 = userInfo1[uid1].name.split(' ').pop();
-				const userName2 = userInfo2[uid2].name.split(' ').pop();
-
-				const apiUrl = "https://nekos.best/api/v2/hug?amount=1";
-				axios
-						.get(apiUrl)
-						.then(async (response) => {
-								const gifUrl = response.data.results[0].url;
-								const imageResponse = await axios.get(gifUrl, { responseType: "arraybuffer" });
-								const outputBuffer = Buffer.from(imageResponse.data, "binary");
-								fs.writeFileSync(`${uid1}_${uid2}_hug.gif`, outputBuffer);
-
-								message.reply({
-										body: `${userName1} 🤗 ${userName2}`,
-										attachment: fs.createReadStream(`${uid1}_${uid2}_hug.gif`),
-								}, () => fs.unlinkSync(`${uid1}_${uid2}_hug.gif`));
-						})
-						.catch((error) => {
-								console.log(error);
-								message.reply("There was an error processing the hug gif.");
-						});
-		},
+module.exports.config = {
+    name: "hug",
+    version: "3.1.1",
+    hasPermssion: 0,
+    credits: "John Lester",
+    description: "Hug 🥰",
+    commandCategory: "img",
+    usages: "[@mention]",
+    cooldowns: 5,
+    dependencies: {
+        "axios": "",
+        "fs-extra": "",
+        "path": "",
+        "jimp": ""
+    }
 };
+
+module.exports.onLoad = async() => {
+    const { resolve } = global.nodemodule["path"];
+    const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
+    const { downloadFile } = global.utils;
+    const dirMaterial = __dirname + `/cache/canvas/`;
+    const path = resolve(__dirname, 'cache/canvas', 'hugv1.png');
+    if (!existsSync(dirMaterial + "canvas")) mkdirSync(dirMaterial, { recursive: true });
+    if (!existsSync(path)) await downloadFile("https://i.ibb.co/3YN3T1r/q1y28eqblsr21.jpg", path);
+}
+
+async function makeImage({ one, two }) {
+    const fs = global.nodemodule["fs-extra"];
+    const path = global.nodemodule["path"];
+    const axios = global.nodemodule["axios"]; 
+    const jimp = global.nodemodule["jimp"];
+    const __root = path.resolve(__dirname, "cache", "canvas");
+
+    let batgiam_img = await jimp.read(__root + "/hugv1.png");
+    let pathImg = __root + `/batman${one}_${two}.png`;
+    let avatarOne = __root + `/avt_${one}.png`;
+    let avatarTwo = __root + `/avt_${two}.png`;
+    
+    let getAvatarOne = (await axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
+    fs.writeFileSync(avatarOne, Buffer.from(getAvatarOne, 'utf-8'));
+    
+    let getAvatarTwo = (await axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
+    fs.writeFileSync(avatarTwo, Buffer.from(getAvatarTwo, 'utf-8'));
+    
+    let circleOne = await jimp.read(await circle(avatarOne));
+    let circleTwo = await jimp.read(await circle(avatarTwo));
+    batgiam_img.composite(circleOne.resize(150, 150), 320, 100).composite(circleTwo.resize(130, 130), 280, 280);
+    
+    let raw = await batgiam_img.getBufferAsync("image/png");
+    
+    fs.writeFileSync(pathImg, raw);
+    fs.unlinkSync(avatarOne);
+    fs.unlinkSync(avatarTwo);
+    
+    return pathImg;
+}
+async function circle(image) {
+    const jimp = require("jimp");
+    image = await jimp.read(image);
+    image.circle();
+    return await image.getBufferAsync("image/png");
+}
+
+module.exports.run = async function ({ event, api, args }) {    
+    const fs = global.nodemodule["fs-extra"];
+    const { threadID, messageID, senderID } = event;
+    const mention = Object.keys(event.mentions);
+    if (!mention[0]) return api.sendMessage("Please mention 1 person.", threadID, messageID);
+    else {
+        const one = senderID, two = mention[0];
+        return makeImage({ one, two }).then(path => api.sendMessage({ body: "", attachment: fs.createReadStream(path) }, threadID, () => fs.unlinkSync(path), messageID));
+    }
+      }
